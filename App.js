@@ -1,29 +1,60 @@
-import React, { useState } from 'react';
+import React, { useState, useEffect } from 'react';
 import { View, Text, TextInput, Button, StyleSheet, ScrollView, Keyboard } from 'react-native';
 import Task from './components/Task';
+import db from './firebase';
+import { collection, getDocs, updateDoc, doc, addDoc, deleteDoc } from 'firebase/firestore';
 
 export default function App() {
   const [task, setTask] = useState('');
   const [taskItems, setTaskItems] = useState([]);
 
-  const handleAddTask = () => {
+  const dbCollection = collection(db, 'Todo');
+
+  useEffect(() => {
+    const fetchData = async () => {
+      const querySnapshot = await getDocs(dbCollection);
+      const data = querySnapshot.docs.map((doc) => ({
+        id: doc.id,
+        title: doc.data().title,
+        status: doc.data().status
+      }));
+      setTaskItems(data);
+    };
+    fetchData();
+  }, []);
+
+  const handleAddTask = async () => {
     if (task.trim() !== '') {
       Keyboard.dismiss();
-      setTaskItems([...taskItems, { id: Date.now().toString(), title: task, status: false }]);
+      const newTask = { title: task, status: false };
+      const docRef = await addDoc(dbCollection, newTask);
+      setTaskItems([...taskItems, { id: docRef.id, ...newTask }]);
       setTask('');
+    };
+  };
+
+  const handleDeleteTask = async (taskId) => {
+    try {
+      await deleteDoc(doc(db, 'Todo', taskId));
+      setTaskItems(taskItems.filter(task => task.id !== taskId));
+    } catch (error) {
+      console.log('Error while deleting task: ', error);
     }
   }
 
-  const handleDeleteTask = (taskId) => {
-    setTaskItems(taskItems.filter(task => task.id !== taskId));
-  }
-
-  const handleToggleTaskStatus = (taskId) => {
-    setTaskItems(
-      taskItems.map(task =>
-        task.id === taskId ? { ...task, status: !task.status } : task
-      )
-    );
+  const handleToggleTaskStatus = async (taskId) => {
+    const taskToUpdate = taskItems.find(task => task.id === taskId);
+    const updatedTask = { ...taskToUpdate, status: !taskToUpdate.status };
+    try {
+      await updateDoc(doc(db, 'Todo', taskId), { status: updatedTask.status });
+      setTaskItems(
+        taskItems.map(task =>
+          task.id === taskId ? updatedTask : task
+        )
+      );
+    } catch (error) {
+      console.error('Error on changing status: ', error);
+    }
   };
 
   return (
@@ -45,7 +76,6 @@ export default function App() {
           disabled={task.trim() === ''}
         />
       </View>
-
       <ScrollView style={styles.taskItems}>
         {taskItems.map((task) => (
           <Task
@@ -56,8 +86,6 @@ export default function App() {
           />
         ))}
       </ScrollView>
-
-
     </View>
   );
 };

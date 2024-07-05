@@ -1,12 +1,8 @@
-import React, { useState } from 'react';
-import { View, Text, StyleSheet, TouchableOpacity, Switch, Button } from 'react-native';
-import styles from './styles'
-
+import React from 'react';
+import { View, Text, TouchableOpacity, Switch } from 'react-native';
+import styles from './styles';
 
 const Task = ({ task, deleteTask, toggleTaskStatus }) => {
-    const [taskDone, setTaskDone] = useState(false);
-
-
     return (
         <View style={styles.container}>
             <View style={styles.upperItem}>
@@ -22,7 +18,7 @@ const Task = ({ task, deleteTask, toggleTaskStatus }) => {
                 </TouchableOpacity>
             </View>
         </View>
-    )
-}
+    );
+};
 
 export default Task;
